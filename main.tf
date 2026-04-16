@@ -2,7 +2,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "=4.1.0"
+      version = "=3.114.0"
     }
   }
 }
@@ -17,4 +17,51 @@ terraform {
     container_name       = "tfstate"
     key                  = "globalazure.tfstate"
   }
+}
+
+locals {
+  tags = {
+    "terraform" = "true"
+  }
+  rg_name = "rg-user14"
+  rg_location = "polandcentral"
+}
+
+module "keyvault" {
+  source = "git::https://github.com/pchylak/global_azure_2026_ccoe.git?ref=keyvault/v1.0.0"
+  keyvault_name = "user14gakv001"
+  resource_group = {
+    name = local.rg_name
+    location = local.rg_location
+  }
+  network_acls = {
+    bypass = "AzureServices"
+    default_action = "Deny"
+  }
+  tags = local.tags
+}
+
+module "service_plan" {
+  source = "git::https://github.com/pchylak/global_azure_2026_ccoe.git?ref=service_plan/v2.0.0"
+  app_service_plan_name = "user14spga01"
+  resource_group = {
+    name = local.rg_name
+    location = local.rg_location
+  }
+  sku_name = "B1"
+  tags = local.tags
+}
+
+module "app_service" {
+  source = "git::https://github.com/pchylak/global_azure_2026_ccoe.git?ref=app_service/v1.0.0"
+  app_service_name = "user14spsdb34"
+  app_service_plan_id = module.service_plan.app_service_plan.id
+  app_settings = {}
+  identity_client_id = "df693838-cb34-4e3f-9aae-d4c61c363cff"
+  identity_id = "df693838-cb34-4e3f-9aae-d4c61c363cff"
+  resource_group = {
+    name = local.rg_name
+    location = local.rg_location
+  }
+  
 }
